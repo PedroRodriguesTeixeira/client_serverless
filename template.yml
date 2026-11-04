@@ -1,0 +1,157 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+
+Description: Infraestrutura do projeto clientes-serverless
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Ambiente de execução da aplicação
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 30
+    MemorySize: 256
+    Environment:
+      Variables:
+        ENVIRONMENT: !Ref Environment
+        TABLE_NAME: !Ref Dynamo
+
+Resources:
+  CriarClienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers/
+      Handler: criar.handler
+      Policies:
+        - DynamoDBWritePolicy:
+            TableName: !Ref Dynamo
+      Events:
+        CriarCliente:
+          Type: Api
+          Properties:
+            Path: /clientes
+            Method: post
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - criar.ts
+        Format: cjs
+        Target: es2020
+        Minify: true
+        Sourcemap: false
+
+  ListarClientesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers
+      Handler: obter.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref Dynamo
+      Events:
+        ListarClientes:
+          Type: Api
+          Properties:
+            Path: /clientes
+            Method: get
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - obter.ts
+        Format: cjs
+        Target: es2020
+        Minify: true
+        Sourcemap: false
+
+  BuscarClienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers
+      Handler: buscar.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref Dynamo
+      Events:
+        BuscarCliente:
+          Type: Api
+          Properties:
+            Path: /clientes/{id}
+            Method: get
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - buscar.ts
+        Format: cjs
+        Target: es2020
+        Minify: true
+        Sourcemap: false
+
+  AtualizarClienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers
+      Handler: atualizar.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Dynamo
+      Events:
+        AtualizarCliente:
+          Type: Api
+          Properties:
+            Path: /clientes/{id}
+            Method: put
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - atualizar.ts
+        Format: cjs
+        Target: es2020
+        Minify: true
+        Sourcemap: false
+
+  ExcluirClienteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/handlers/
+      Handler: excluir.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Dynamo
+      Events:
+        ExcluirCliente:
+          Type: Api
+          Properties:
+            Path: /clientes/{id}
+            Method: delete
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        EntryPoints:
+          - excluir.ts
+        Format: cjs
+        Target: es2020
+        Minify: true
+        Sourcemap: false
+
+  Dynamo:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      TableName: Clients
+      AttributeDefinitions:
+        - AttributeName: pk
+          AttributeType: S
+      KeySchema:
+        - AttributeName: pk
+          KeyType: HASH
