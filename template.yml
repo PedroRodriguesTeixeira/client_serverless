@@ -30,7 +30,7 @@ Resources:
   CriarClienteFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: backend/src/handlers/
+      CodeUri: backend/
       Handler: criar.handler
       Policies:
         - DynamoDBWritePolicy:
@@ -45,7 +45,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - criar.ts
+          - src/handlers/criar.ts
         Format: cjs
         Target: es2020
         Minify: true
@@ -54,7 +54,7 @@ Resources:
   ListarClientesFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: backend/src/handlers
+      CodeUri: backend/
       Handler: obter.handler
       Policies:
         - DynamoDBReadPolicy:
@@ -69,7 +69,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - obter.ts
+          - src/handlers/obter.ts
         Format: cjs
         Target: es2020
         Minify: true
@@ -78,7 +78,7 @@ Resources:
   BuscarClienteFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: backend/src/handlers
+      CodeUri: backend/
       Handler: buscar.handler
       Policies:
         - DynamoDBReadPolicy:
@@ -93,7 +93,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - buscar.ts
+          - src/handlers/buscar.ts
         Format: cjs
         Target: es2020
         Minify: true
@@ -102,7 +102,7 @@ Resources:
   AtualizarClienteFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: backend/src/handlers
+      CodeUri: backend/
       Handler: atualizar.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -117,7 +117,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - atualizar.ts
+          - src/handlers/atualizar.ts
         Format: cjs
         Target: es2020
         Minify: true
@@ -126,7 +126,7 @@ Resources:
   ExcluirClienteFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: backend/src/handlers/
+      CodeUri: backend/
       Handler: excluir.handler
       Policies:
         - DynamoDBCrudPolicy:
@@ -141,7 +141,7 @@ Resources:
       BuildMethod: esbuild
       BuildProperties:
         EntryPoints:
-          - excluir.ts
+          - src/handlers/excluir.ts
         Format: cjs
         Target: es2020
         Minify: true
