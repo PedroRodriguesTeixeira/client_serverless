@@ -6,3 +6,7 @@ samconfig.toml
 *.pem
 .idea/
 *.iml
+
+
+# arquivo de consulta
+duvidas-projeto.md
