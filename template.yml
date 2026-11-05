@@ -4,6 +4,9 @@ Transform: AWS::Serverless-2016-10-31
 Description: Infraestrutura do projeto clientes-serverless
 
 Parameters:
+  TableName:
+    Type: String
+    Default: Clients
   Environment:
     Type: String
     Default: dev
@@ -21,7 +24,7 @@ Globals:
     Environment:
       Variables:
         ENVIRONMENT: !Ref Environment
-        TABLE_NAME: !Ref Dynamo
+        TABLE_NAME: !Ref TableName
 
 Resources:
   CriarClienteFunction:
@@ -31,7 +34,7 @@ Resources:
       Handler: criar.handler
       Policies:
         - DynamoDBWritePolicy:
-            TableName: !Ref Dynamo
+            TableName: !Ref TableName
       Events:
         CriarCliente:
           Type: Api
@@ -55,7 +58,7 @@ Resources:
       Handler: obter.handler
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref Dynamo
+            TableName: !Ref TableName
       Events:
         ListarClientes:
           Type: Api
@@ -79,12 +82,12 @@ Resources:
       Handler: buscar.handler
       Policies:
         - DynamoDBReadPolicy:
-            TableName: !Ref Dynamo
+            TableName: !Ref TableName
       Events:
         BuscarCliente:
           Type: Api
           Properties:
-            Path: /clientes/{id}
+            Path: /clientes/{pk}
             Method: get
     Metadata:
       BuildMethod: esbuild
@@ -103,12 +106,12 @@ Resources:
       Handler: atualizar.handler
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref Dynamo
+            TableName: !Ref TableName
       Events:
         AtualizarCliente:
           Type: Api
           Properties:
-            Path: /clientes/{id}
+            Path: /clientes/{pk}
             Method: put
     Metadata:
       BuildMethod: esbuild
@@ -127,12 +130,12 @@ Resources:
       Handler: excluir.handler
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref Dynamo
+            TableName: !Ref TableName
       Events:
         ExcluirCliente:
           Type: Api
           Properties:
-            Path: /clientes/{id}
+            Path: /clientes/{pk}
             Method: delete
     Metadata:
       BuildMethod: esbuild
