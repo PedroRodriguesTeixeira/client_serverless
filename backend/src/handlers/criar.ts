@@ -4,7 +4,7 @@ import {APIGatewayProxyEvent } from "aws-lambda";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
-import { incrementalPk } from "../services/IncrementalPkService";
+import { incrementalPk } from "../services/incrementalPkService";
 
 export const client = new DynamoDBClient({});
 
