@@ -1,14 +1,14 @@
 
-import { APIGatewayEvent, APIGatewayProxyEvent } from "aws-lambda";
+import {APIGatewayProxyEvent } from "aws-lambda";
 
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { PutCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 
-import { teste } from "../services/test";
+import { incrementalPk } from "../services/IncrementalPkService";
 
-const client = new DynamoDBClient({});
+export const client = new DynamoDBClient({});
 
-const ddbDocClient = DynamoDBDocumentClient.from(client);
+export const ddbDocClient = DynamoDBDocumentClient.from(client);
 
 
 export const handler = async (event: APIGatewayProxyEvent) => {
@@ -27,16 +27,17 @@ export const handler = async (event: APIGatewayProxyEvent) => {
             })
         };
     }
-
     
-
+    
     try {
+
+          const pkName = await incrementalPk();
         
            const response = await ddbDocClient.send(
             new PutCommand({
-                TableName: process.env.TABLE_NAME, //Pesquisar sobre esse process
+                TableName: process.env.TABLE_NAME,
                 Item: {
-                    pk: request['pk'],
+                    pk: pkName,
                     nome: request['nome'],
                     email: request['email'],
                     telefone: request['telefone']
