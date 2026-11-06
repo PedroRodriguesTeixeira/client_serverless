@@ -44,7 +44,7 @@ export async function incrementalPk() {
     }
 
 
-    return "CLIENTE#" + item;
+    return "CLIENTE" + item;
 
 
 
