@@ -2,7 +2,7 @@
 
 API serverless para cadastro de clientes (CRUD), construída com **AWS SAM**, **AWS Lambda** (Node.js 20 + TypeScript), **API Gateway** e **Amazon DynamoDB**.
 
-> ⚠️ **Projeto em desenvolvimento.** Apenas a criação de clientes (`POST /clientes`) está implementada. As demais rotas já estão declaradas na infraestrutura, mas os handlers ainda estão vazios ou retornam respostas provisórias. Até o momento, os testes da API são feitos **localmente** com o `sam local`.
+> ⚠️ **Projeto em desenvolvimento.** A criação de clientes (`POST /clientes`) e a listagem (`GET /clientes`) estão implementadas. As demais rotas já estão declaradas na infraestrutura, mas os handlers ainda estão vazios ou retornam respostas provisórias. Até o momento, os testes da API são feitos **localmente** com o `sam local`.
 
 ---
 
@@ -57,7 +57,7 @@ clientes-serverless/
 | Método | Rota              | Lambda                     | Permissão IAM | Status                                   |
 |--------|-------------------|----------------------------|---------------|------------------------------------------|
 | POST   | `/clientes`       | `CriarClienteFunction`     | Escrita       | ✅ Implementado (em testes)               |
-| GET    | `/clientes`       | `ListarClientesFunction`   | Leitura       | 🚧 Provisório: retorna apenas `{"message": "Ok."}` |
+| GET    | `/clientes`       | `ListarClientesFunction`   | Leitura       | ✅ Implementado: lista clientes via DynamoDB (em testes) |
 | GET    | `/clientes/{pk}`  | `BuscarClienteFunction`    | Leitura       | ⏳ Não implementado                       |
 | PUT    | `/clientes/{pk}`  | `AtualizarClienteFunction` | CRUD          | ⏳ Não implementado                       |
 | DELETE | `/clientes/{pk}`  | `ExcluirClienteFunction`   | CRUD          | ⏳ Não implementado                       |
@@ -166,14 +166,16 @@ Campos aceitos no corpo:
 
 > Ainda não existe validação dos campos. Qualquer JSON é aceito, e campos ausentes são gravados vazios.
 
-### Listar clientes (provisório)
+### Listar clientes
 
 ```bash
 curl http://127.0.0.1:3000/clientes
 ```
 
+A resposta `200 OK` retorna os clientes encontrados no DynamoDB no campo `message`:
+
 ```json
-{ "message": "Ok." }
+{ "message": [ ... ] }
 ```
 
 ## Geração da chave dos clientes
@@ -204,7 +206,6 @@ Pontos conhecidos que ainda estão sendo trabalhados:
 
 ## Próximos passos
 
-- [ ] Implementar `GET /clientes` (listagem)
 - [ ] Implementar `GET /clientes/{pk}` (busca por chave)
 - [ ] Implementar `PUT /clientes/{pk}` (atualização)
 - [ ] Implementar `DELETE /clientes/{pk}` (exclusão)
