@@ -10,3 +10,6 @@ samconfig.toml
 
 # arquivo de consulta
 duvidas-projeto.md
+
+#Arquivo de mensagens para o github:
+conventional_commit_messages.md
