@@ -2,7 +2,7 @@
 
 API serverless para cadastro de clientes (CRUD), construída com **AWS SAM**, **AWS Lambda** (Node.js 20 + TypeScript), **API Gateway** e **Amazon DynamoDB**.
 
-> ⚠️ **Projeto em desenvolvimento.** A criação de clientes (`POST /clientes`) e a listagem (`GET /clientes`) estão implementadas. As demais rotas já estão declaradas na infraestrutura, mas os handlers ainda estão vazios ou retornam respostas provisórias. Até o momento, os testes da API são feitos **localmente** com o `sam local`.
+> ⚠️ **Projeto em desenvolvimento.** Todas as rotas do CRUD já estão implementadas (`POST`, `GET`, `GET /{pk}`, `PUT` e `DELETE`). Até o momento, os testes da API são feitos **localmente** com o `sam local`.
 
 ---
 
@@ -28,7 +28,7 @@ Cliente HTTP ──► API Gateway ──► Lambda (uma por operação) ──�
 ```
 
 - Cada operação do CRUD é uma **Lambda separada**, com seu próprio handler.
-- O código compartilhado (ex.: geração de chave) fica em `backend/src/services` e é empacotado junto com cada Lambda pelo **esbuild** durante o `sam build`.
+- O código compartilhado (ex.: geração de chave, client do DynamoDB e busca de cliente por `pk`) fica em `backend/src/services` e é empacotado junto com cada Lambda pelo **esbuild** durante o `sam build`.
 - O nome da tabela chega às Lambdas pela variável de ambiente `TABLE_NAME`, definida no `template.yml`.
 - Cada Lambda recebe apenas a permissão IAM de que precisa (leitura, escrita ou CRUD).
 
@@ -49,7 +49,8 @@ clientes-serverless/
         │   ├── atualizar.ts     # PUT    /clientes/{pk}
         │   └── excluir.ts       # DELETE /clientes/{pk}
         └── services/
-            └── incrementalPkService.ts   # Gera a chave sequencial dos clientes
+            ├── incrementalPkService.ts   # Gera a chave sequencial dos clientes
+            └── searchClient.ts           # Client do DynamoDB e busca de cliente por pk
 ```
 
 ## Status dos endpoints
@@ -58,9 +59,9 @@ clientes-serverless/
 |--------|-------------------|----------------------------|---------------|------------------------------------------|
 | POST   | `/clientes`       | `CriarClienteFunction`     | Escrita       | ✅ Implementado (em testes)               |
 | GET    | `/clientes`       | `ListarClientesFunction`   | Leitura       | ✅ Implementado: lista clientes via DynamoDB (em testes) |
-| GET    | `/clientes/{pk}`  | `BuscarClienteFunction`    | Leitura       | ⏳ Não implementado                       |
-| PUT    | `/clientes/{pk}`  | `AtualizarClienteFunction` | CRUD          | ⏳ Não implementado                       |
-| DELETE | `/clientes/{pk}`  | `ExcluirClienteFunction`   | CRUD          | ⏳ Não implementado                       |
+| GET    | `/clientes/{pk}`  | `BuscarClienteFunction`    | Leitura       | ✅ Implementado (em testes)               |
+| PUT    | `/clientes/{pk}`  | `AtualizarClienteFunction` | CRUD          | ✅ Implementado (em testes)               |
+| DELETE | `/clientes/{pk}`  | `ExcluirClienteFunction`   | CRUD          | ✅ Implementado (em testes)               |
 
 ## Pré-requisitos
 
@@ -164,7 +165,7 @@ Campos aceitos no corpo:
 | `email`    | string |
 | `telefone` | string |
 
-> Ainda não existe validação dos campos. Qualquer JSON é aceito, e campos ausentes são gravados vazios.
+> O `POST` ainda não valida os campos: qualquer JSON é aceito, e campos ausentes são gravados vazios. O `PUT` já exige `nome`, `email` e `telefone`.
 
 ### Listar clientes
 
@@ -178,9 +179,49 @@ A resposta `200 OK` retorna os clientes encontrados no DynamoDB no campo `messag
 { "message": [ ... ] }
 ```
 
+### Buscar cliente por chave
+
+```bash
+curl http://127.0.0.1:3000/clientes/CLIENTE1
+```
+
+| Status | Situação                         |
+|--------|----------------------------------|
+| 200    | Cliente encontrado               |
+| 400    | `pk` não informada               |
+| 404    | "Usuário errado ou inválido."    |
+
+### Atualizar cliente
+
+```bash
+curl -X PUT http://127.0.0.1:3000/clientes/CLIENTE1   -H "Content-Type: application/json"   -d '{"nome": "Maria Souza", "email": "maria@exemplo.com", "telefone": "11888888888"}'
+```
+
+`nome`, `email` e `telefone` são obrigatórios.
+
+| Status | Situação                                                       |
+|--------|----------------------------------------------------------------|
+| 200    | "Usuário atualizado com sucesso!"                              |
+| 400    | `pk` ausente, corpo vazio, JSON inválido ou campos faltando    |
+| 404    | "Usuário não encontrado!"                                      |
+| 500    | "Erro ao atualizar o usuário."                                 |
+
+### Excluir cliente
+
+```bash
+curl -X DELETE http://127.0.0.1:3000/clientes/CLIENTE1
+```
+
+| Status | Situação                          |
+|--------|-----------------------------------|
+| 200    | "Usuário excluído com sucesso!"   |
+| 400    | `pk` não informada                |
+| 404    | "Usuário não encontrado!"         |
+| 500    | "Erro ao excluir o usuário."      |
+
 ## Geração da chave dos clientes
 
-Os clientes recebem uma chave sequencial no formato `CLIENTE#<número>` (ex.: `CLIENTE#1`, `CLIENTE#2`...).
+Os clientes recebem uma chave sequencial no formato `CLIENTE<número>`, sem `#` e sem zeros à esquerda (ex.: `CLIENTE1`, `CLIENTE2`, `CLIENTE10`...).
 
 O `incrementalPkService.ts`, localizado em `backend/src/services/`, faz isso em dois passos:
 
@@ -191,25 +232,25 @@ import { incrementalPk } from "../services/incrementalPkService";
 ```
 
 1. Lê o item de controle `pk = "FINAL#CLIENT"` e soma 1 ao atributo `lastClient`;
-2. Grava o novo valor de volta no item de controle e devolve a chave `CLIENTE#<novo valor>`.
+2. Grava o novo valor de volta no item de controle e devolve a chave `CLIENTE<novo valor>`.
 
 ## Pontos de atenção
 
 Pontos conhecidos que ainda estão sendo trabalhados:
 
-- **Contador não inicializado:** se o item `FINAL#CLIENT` não existir, a chave gerada vira `CLIENTE#NaN`. Por isso o passo 4 da configuração é obrigatório.
+- **Contador não inicializado:** se o item `FINAL#CLIENT` não existir, a chave gerada vira `CLIENTENaN`. Por isso o passo 4 da configuração é obrigatório.
 - **Concorrência:** a leitura e a gravação do contador são feitas em operações separadas. Duas requisições simultâneas podem gerar a mesma chave, e uma sobrescreve a outra. Uma alternativa é usar `UpdateCommand` com `ADD`, que incrementa de forma atômica.
 - **Caminho do serviço incremental:** `criar.ts` importa `incrementalPk` usando `../services/incrementalPkService`, que aponta para `backend/src/services/incrementalPkService.ts`.
 - **Tabela declarada em dois templates:** a tabela existe tanto em `database/template.yml` quanto em `template.yml`, com nome fixo. Fazer deploy das duas stacks na mesma conta e região gera conflito. Além disso, o nome fixo no recurso pode ficar diferente do parâmetro `TableName` usado nas permissões e na variável de ambiente.
-- **Erros:** falhas no DynamoDB retornam status `400` com o objeto de erro na resposta. O ideal seria retornar `500` com uma mensagem genérica, sem expor detalhes internos.
+- **Erros:** no `POST`, falhas no DynamoDB retornam status `400` com o objeto de erro na resposta. O ideal seria retornar `500` com uma mensagem genérica, sem expor detalhes internos (o `PUT` e o `DELETE` já retornam `500` com mensagem genérica).
 - **Status de criação:** o `POST` retorna `200`. O mais comum para criação é `201 Created`, junto com a chave do novo cliente.
 
 ## Próximos passos
 
-- [ ] Implementar `GET /clientes/{pk}` (busca por chave)
-- [ ] Implementar `PUT /clientes/{pk}` (atualização)
-- [ ] Implementar `DELETE /clientes/{pk}` (exclusão)
-- [ ] Validar o corpo das requisições
+- [x] Implementar `GET /clientes/{pk}` (busca por chave)
+- [x] Implementar `PUT /clientes/{pk}` (atualização)
+- [x] Implementar `DELETE /clientes/{pk}` (exclusão)
+- [ ] Validar o corpo das requisições (`POST`)
 - [ ] Tornar o contador de chaves atômico
 - [ ] Unificar a definição da tabela em um só template
 - [ ] Adicionar testes automatizados
