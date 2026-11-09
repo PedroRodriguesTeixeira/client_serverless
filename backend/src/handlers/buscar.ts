@@ -1,31 +1,36 @@
-
+//lambda
 import type { APIGatewayEvent, APIGatewayProxyEvent } from "aws-lambda";
 
+//dynamo
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { GetCommand, DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-
-
+import { GetCommand, DynamoDBDocumentClient, type GetCommandOutput } from "@aws-sdk/lib-dynamodb";
 export const client = new DynamoDBClient({});
-
 export const ddbDocClient = DynamoDBDocumentClient.from(client);
+
+//searchClient
+import { search } from "../services/searchClient"
 
 export const handler = async (event: APIGatewayEvent) => {
 
 
     const pk = event.pathParameters?.pk;
+    let response: GetCommandOutput;
+
+    if (pk) {
+        response = await search(pk)
+    } else {
+        return {
+            statusCode: 400,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: "pk não informado." })
+        };
+    }
+
 
     try {
 
-        const response = await ddbDocClient.send(
-            new GetCommand({
-                TableName: process.env.TABLE_NAME,
-                Key: {
-                    pk: pk
-                }
-            })
-        )
+        const client = (await response).Item;
 
-        const client = response.Item;
 
         if (!client) {
             return {
@@ -37,7 +42,7 @@ export const handler = async (event: APIGatewayEvent) => {
                     message: "Usuário errado ou inválido."
                 })
             }
-        }
+        } 
 
 
         return {
